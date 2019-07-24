@@ -1,0 +1,12 @@
+total_recs: 2312
+doc_nonpolice: 0.0
+total_ci_lo: 2649
+total_ci_med: 2841
+total_ci_hi: 3111
+total_pol_ci_lo: 1198
+total_pol_ci_med: 1254
+total_pol_ci_hi: 1345
+total_uni_ci_lo: 1404
+total_uni_ci_med: 1587
+total_uni_ci_hi: 1860
+police_recs: 1794

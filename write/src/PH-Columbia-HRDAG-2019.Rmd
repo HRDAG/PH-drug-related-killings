@@ -1,0 +1,350 @@
+---
+title: \Large{Drug-Related Killings in the Philippines \\}
+author:
+- Patrick Ball^[[Human Rights Data Analysis Group](https://hrdag.org)]
+- Sheila Coronel^[[Columbia Journalism School](https://journalism.columbia.edu/faculty/sheila-coronel)]
+- Mariel Padilla^[[Columbia Journalism School](https://marielpadilla.contently.com/)]
+- David Mora^[[Columbia Journalism School](https://www.davidmoravera.com)]
+date: "26 July 2019"
+site: "bookdown::bookdown_site"
+fig_width: 4
+fig_height: 2.5
+fontsize: 12pt
+header-includes:
+    - \usepackage{hyperref}
+urlcolor: blue
+output:
+    bookdown::pdf_document2:
+        toc: FALSE
+        includes:
+            in_header: header.tex
+bibliography: [hrdag.bib]
+biblio-style: "apalike"
+link-citations: true
+---
+```{r setup, echo=FALSE}
+knitr::opts_knit$set(root.dir = '..')
+```
+
+
+```{r, echo=FALSE, include=FALSE, warning=FALSE, comment=FALSE}
+library(pacman)
+p_load(argparse, ggplot2, dplyr, readr, knitr, assertr, yaml, tidyr)
+
+files <- list(
+    yamldata = "output/PH-results.yaml",
+    man_pol_cnts = here::here("write/output/man_pol_cnts.rds"),
+    man_pol_upsetr = here::here("lcmcr/output/manila-police-upsetr.pdf"),
+    man_pol_density = here::here("lcmcr/output/manila-police-density.pdf"),
+    man_pol_omitted = here::here("lcmcr/output/manila-police-omitted.pdf"),
+    man_uni_upsetr = here::here( "lcmcr/output/manila-unidentified-upsetr.pdf"),
+    man_uni_density = here::here("lcmcr/output/manila-unidentified-density.pdf"),
+    man_uni_omitted = here::here("lcmcr/output/manila-unidentified-omitted.pdf"),
+    que_pol_upsetr = here::here("lcmcr/output/quezon-police-upsetr.pdf"),
+    que_pol_density = here::here("lcmcr/output/quezon-police-density.pdf"),
+    que_pol_omitted = here::here("lcmcr/output/quezon-police-omitted.pdf"),
+    que_uni_upsetr = here::here( "lcmcr/output/quezon-unidentified-upsetr.pdf"),
+    que_uni_density = here::here("lcmcr/output/quezon-unidentified-density.pdf"),
+    que_uni_omitted = here::here("lcmcr/output/quezon-unidentified-omitted.pdf"),
+    cal_pol_upsetr = here::here("lcmcr/output/caloocan-police-upsetr.pdf"),
+    cal_pol_density = here::here("lcmcr/output/caloocan-police-density.pdf"),
+    cal_pol_omitted = here::here("lcmcr/output/caloocan-police-omitted.pdf"),
+    cal_uni_upsetr = here::here( "lcmcr/output/caloocan-unidentified-upsetr.pdf"),
+    cal_uni_density = here::here("lcmcr/output/caloocan-unidentified-density.pdf"),
+    cal_uni_omitted = here::here("lcmcr/output/caloocan-unidentified-omitted.pdf")
+)
+
+tb <- readr::read_delim(
+    here::here("write/output/PH-results.csv.gz"),
+    delim="|", col_types=cols())
+
+total_polrep = sum(tb$polrep)
+total_polmult = round(sum(tb$med)/total_polrep, 2)
+
+one_tb <- function(regarg, perparg, fld) {
+    tb %>%
+        filter(region==regarg & pcat==perparg) %>%
+        verify(nrow(.) == 1) %>%
+        select(!!fld)
+}
+yamldata <- yaml.load_file(files$yamldata)
+thou <- function(n) {
+    prettyNum(n, big.mark=',')
+}
+```
+
+
+# Executive Summary {-}
+
+How many people have been killed in drug-related violence in the Philippines? This report considers this question by focusing on three cities in Metro Manila, the Philippine capital: Manila, Caloocan, and Quezon City. We consider only the period from July 2016 through December 2017.
+
+There are several ways to understand how many drug-related killings there have been. First, there is the number of drug-related killings reported by the police in these three cities: `r thou(total_polrep)`.[^polrep] This includes killings by police and by unidentified assailants. The police did not provide an analysis of how complete this count may be. Second, there are `r thou(yamldata$total_recs)` drug-related killings _documented_ with the name of the victim and the date and location of killing in police blotters, news stories, and reports from churches, academics, and human rights groups.[^reccnt] Third, using the documented killings and taking into account the killings that were _not documented_, we estimate a total of `r thou(yamldata$total_ci_med)` drug-related killings in these three cities in this period.[^total_ci]
+
+[^polrep]: This figure includes 764 drug suspects killed by police officers during police operations and 201 homicides by unknown assailants that the police believe to be drug-related. The number of drug suspects killed by the police came from the National Capital Region Police Office of the Philippine National Police, which provided a spreadsheet showing aggregate casualty numbers, broken down by police station. We included in this tally only the number killed by the police in three cities during the first 18 months of the antidrug campaign. The same office also shared a spreadsheet containing detailed data on drug-related homicides that took place in 17 municipalities in the capital from July 1, 2016 to March 31, 2019. This spreadsheet came from the police's electronic blotter and included names of fatalities, incident dates, motives of the crime, incident narratives, geolocation, and other information. From this dataset, we extracted information on 201 homicides in the three cities that are the focus of this study.
+
+[^reccnt]: Here we describe `r thou(yamldata$total_recs)` records, which is eight fewer than we report in other publications (that is, we report 2,320 elsewhere). In this report, we exclude eight cases reported only by the Balay Rehabilitation Center which covered only a small subregion within Caloocan. The limited geographic scope made the Balay data inappropriate for our use here.
+
+[^total_ci]: The two-tailed 95\% equal probability credible interval for this estimate is [`r thou(yamldata$total_ci_lo)`, `r thou(yamldata$total_ci_hi)`].
+
+The documented total and our estimate are considerably greater than the count provided by police: we estimate that the true number of drug-related killings is approximately `r total_polmult` times greater than what the police reported.
+
+The number of killings that were not documented is called the "dark figure." We estimate the dark figure using a statistical technique called _multiple systems estimation_. [This link](https://hrdag.org/coreconcepts/) provides a non-technical introduction to the method. For a slightly more mathematical explanation and a description of the method's applications in human rights, see @manrique_price_gohdes_2013.  The rest of this memo explains the question we're addressing, what the data are, and how we used the data to make this estimate.
+
+# Historical Context {-}
+
+In 2016, Rodrigo Duterte was elected to office on the promise that he would wage an all-out war on drugs and crime and eradicate the drug problem in [three to six months](https://cebudailynews.inquirer.net/80895/80895). His bid for the presidency was premised on his record as the long-time mayor of the southern Philippine city of Davao. In the 1980s, Davao was the country’s murder capital, besieged by crime, a communist rebellion, and a fierce counterinsurgency campaign. As mayor, Duterte enforced discipline, including a night-time curfew for minors, popular among residents who had grown weary of the violence. He took credit for bringing peace and order to Davao.
+
+[Human rights groups](https://www.hrw.org/news/2015/07/17/rodrigo-duterte-rise-philippines-death-squad-mayor) say Duterte was also the godfather of the Davao Death Squad, a clandestine group made up of off-duty policemen, former communist rebels, and ex-paramilitary personnel who gunned down pickpockets and other petty criminals. A Catholic Church-sponsored organization [logged](http://www.cbcpnews.com/cbcpnews/?p=76531) some 1,400 deaths attributed to the Davao Death Squad between 1998 and 2015.
+
+When he became president, Duterte named his former Davao police chief, Ronald Dela Rosa, head of the 170,000-strong Philippine National Police (PNP). As Davao’s top cop, Dela Rosa had introduced the policing strategy known as _tokhang_, a contraction of the Visayan words for knock and plead. This involved policemen knocking on the doors of drug or crime suspects, asking them to “surrender” to the police station or to local officials, and keeping them under close surveillance. The PNP adopted this strategy once Dela Rosa became chief.
+
+Modeled after Davao, the antidrug campaign was called “Project Double Barrel” because it had two prongs: _tokhang_, aimed at low-level drug suspects, and another prong aimed at high-value targets. On his first day in office, Dela Rosa issued a [memorandum circular](http://didm.pnp.gov.ph/Command%20Memorandum%20Circulars/CMC%202016-16%20PNP%20ANTI-ILLEGAL%20DRUGS%20CAMPAIGN%20PLAN%20%E2%80%93%20PROJECT%20DOUBLE%20BARREL.pdf) ordering all police units to immediately conduct “massive and simultaneous operations” to curb the drug trade.
+
+Throughout the country, police station commanders targeted street-level drug dealing. Most of their operations were drug stings, which often resulted in small-time drug suspects being killed, supposedly because they drew their guns at the police, forcing the cops to fire back in self-defense.
+
+The police say nearly [5,000](https://www.theguardian.com/world/2018/dec/19/dutertes-philippines-drug-war-death-toll-rises-above-5000) had been killed nationwide by December 2018 (note: our analysis here includes only 2016 and 2017). Police killings, however, account for only a portion of the death toll. Thousands more were gunned down by masked or hooded assailants.
+
+The police blamed these killings on turf wars among drug syndicates, gang rivalries, and rogue or “ninja” policemen in the employ of drug dealers. But both [Human Rights Watch](https://www.hrw.org/report/2017/03/02/license-kill/philippine-police-killings-dutertes-war-drugs) and [Amnesty International](https://www.amnesty.org/en/latest/news/2017/01/philippines-the-police-murderous-war-on-the-poor/) say the police was involved in many of the killings, including in the hiring of contract assassins to shoot drug suspects.
+
+Assassinations by masked gunmen are not new. Since the 1980s, policemen, soldiers, so-called vigilantes, and contract assassins linked to the uniformed services or local political bosses have killed criminals, activists, journalists, and lawyers. In 2008, Philip Alston, then the United Nations Special Rapporteur on extrajudicial, summary, or arbitrary executions issued a [report](https://www.hr-dp.org/files/2014/06/27/Mission_to_Philippines_2008.pdf) noting rising numbers of extrajudicial killings targeting human rights defenders, trade unionists, land reform activists, and others suspected of links to the underground Communist Party. It also noted that “a death squad operates in Davao City, with men regularly killing street children and others in broad daylight.”
+
+In addition to the more than 6,600 people police say they have killed in antidrug operations since the drug war started in 2016, they said there were 30,000 homicides under investigation. Of these, only 10% of the killings are definitely linked to drugs, the police say (see [this article](https://www.scmp.com/news/asia/southeast-asia/article/3015255/philippine-drug-war-deaths-pile-duterte-admits-losing)).
+
+Our report considers only drug-related killings, by which we mean homicides where the victims have been alleged to have had history of drug use, accused of being a drug user or seller, listed on a drug watchlist, sued in a drug-related case, or found to be in possession of drugs or drug kits when they were killed. In some instances, we also included cases where the modus operandi of the assailants --– masked or hooded gunmen on board motorcycles, cars or vans --– closely resembled those used in other drug war killings. The police definition of drug-related killings is similar.
+
+# Estimating the Dark Figure {-}
+
+There are a number of intuitive approaches to understanding the dark figure. Imagine that we have only one dataset; given only that information, we are forced to assume that the data are complete. However, with a second dataset, we can compare the two to determine how many new victims we learn about from the second dataset. If we could continue to acquire new datasets, we might continue to find new victims. If the data were collected independently by each project, and if every victim had some chance, however slight, of being documented by at least one project, with a large enough number of datasets, eventually we would document all the victims.
+
+While the data on drug-related killings in the Philippines is good, it is not complete. As shown in the Technical Appendix-Data, none of the data sources alone covers all the documented cases. Furthermore, the projects are not independent. Some killings are more visible than others, and relatively higher or lower visibility of each victim tends to be similar across sources. Victims who are reported by one source are more likely to be also reported by other sources, and conversely, victims \emph{not reported} by one source are likely to be \emph{not reported} by other sources. Therefore, by adding a few more sources, the data improves, but these limitations mean that even considering several sources, it is unlikely that we will document all the drug-related killings. We need a statistical model to estimate the likely total, including the documented and undocumented cases.
+
+To understand the estimation method, we use the following intuition: imagine two dark rooms. We cannot see inside them, and the only tool we have to explore their size is a handful of small rubber balls. The balls do not make any sound when they hit the walls or ceilings, but they make a small sound -- _click_ -- when they hit each other. We throw the balls into the first room, and listen: click, click, click. We gather the balls and throw them into the second room with equal force: click. Our intuition is that the second room is larger because the balls are able to spread out and therefore strike each other less frequently.
+
+Using databases, in some sense we "throw" the databases into the "room" of people killed in drug-related violence in the Philippines between July 2016 and December 2017. When the databases document the same person, it is as if the databases collided, making a click. We can use the number of people documented on more than one list and the total size of the databases to estimate the total number of victims, including those not on any of the lists.
+
+This method is called "capture-recapture" or "multiple systems estimation," and it has been used to study wildlife and human populations for over one hundred years. A technical and historical introduction to this approach can be found in @bird2017multiple; discussions of the application of capture-recapture to human rights problems can be found in @Lum-2013-TheAmericanStatistician, @bales2015, and @ball_price_2019. The specific method we use here was developed by @Manrique-2016-Biometrics.[^lcmcr]
+
+[^lcmcr]: The software used for the estimates is [Bayesian Non-Parametric Latent-Class Capture-Recapture](https://cran.r-project.org/package=LCMCR) by Indiana University Statistics Professor [Daniel Manrique-Vallier](http://mypage.iu.edu/~dmanriqu/index.html).
+
+```{r TabKableEsts, echo=FALSE, warning=FALSE, results='asis'}
+one_tbpm <- function(fld) {
+    one_tb("Manila", "police", fld)
+}
+
+colhdr <- c("Region", "Perpetrator", "Documented", "2.5%", "estimate", "97.5%", "Undocumented")
+knitr::kable(tb %>% select(region, pcat, recs, lo, med, hi, undocpct),
+             caption="Documented and Estimated Killings", format="latex",
+             col.names=colhdr)
+```
+\
+In Table \@ref(tab:TabKableEsts), we present the observed and estimated number of killings for Manila, Quezon City, and Caloocan. For example, the first row of the table shows that in Manila, there were `r one_tbpm("recs")` deaths _documented_ by one or more of the sources (see the Technical Appendix-Data for more detail about which sources documented how many killings in each city). We estimate that the total number of drug-related killings by police in Manila is `r one_tbpm("med")`, that is, `r one_tbpm("undocpct")` of the killings were undocumented by any of the sources used here.
+
+The estimate was made using a model that uses the patterns of observations (like the clicking balls in the analogy above) and probability theory to make a statistical inference--an estimate--about the unobserved killings. The estimate is not exact. Instead it is a range, and these are shown in the columns of Table \@ref(tab:TabKableEsts) titled by "2.5%" and "97.5%." These show the credible interval of the estimate. For example, the first row can be interpreted as: given these data, and if the model used here is correct, there is a 95\% probability that the true number of killings by police in Manila falls between `r one_tbpm("lo")` and `r one_tbpm("hi")`.
+
+```{r prange, echo=FALSE, warning=FALSE, results='asis'}
+prange <- function(perparg) {
+    pcts <- tb %>%
+			filter(pcat==perparg) %>%
+			mutate(udp=as.numeric(sub("%","",undocpct))) %>%
+			summarize(udpn=min(udp), updx=max(udp)) %>%
+			as.integer
+    paste0(pcts[1], '--', pcts[2], '%')
+}
+pol_range = prange("police")
+uni_range = prange("unidentified")
+```
+
+Note in particular in Table \@ref(tab:TabKableEsts) that the percent undocumented is consistently higher for the unidentified perpetrators than for the killings for which the police took credit for the killing. While the percent undocumented for the police killings varies from `r pol_range`, the percent undocumented for unidentified perpetrators varies from `r uni_range`.
+
+
+## Understanding Contending Numbers {-}
+
+Returning to the number of killings reported by the police, consider Table \@ref(tab:TabKableMan). For each combination of city and perpetrator, this table shows the number of drug-related killings documented by all the sources used in this report, the number reported by the police, the number we estimate (including the dark figure), and the ratio between the number we estimate and the number reported by police.
+
+```{r, "TabKableMan", echo=FALSE, warning=FALSE}
+colhdr <- c("Region", "Perpetrator", "Documented", "Reported by Police", "Estimated", "Est/Police")
+
+knitr::kable(tb %>% select(region, pcat, recs, polrep, med, polmult),
+            caption="Documented, Reported, and Estimated, Killings in Three Cities",
+            format="latex",
+            col.names=colhdr)
+```
+\
+
+Consider killings by police in Manila. As discussed in the previous section (see Table \@ref(tab:TabKableEsts)), there were `r one_tbpm("recs")` drug-related killings by police documented by one or more of the sources used in this report, and we estimate a total of `r one_tbpm("med")`, including the dark figure. However, the National Capital Regional Office of the Philippine National Police _reported_ only `r one_tbpm("polrep")` drug-related killings in Manila for the period July 2016 through December 2017. We estimate `r one_tbpm("polmult")` times more killings by police than the police themselves reported.
+
+The police reported fewer killings by police than the sources documented, and many fewer than we estimated. The underreporting is considerably more serious for drug-related killings by unidentified assailants. For example, in Caloocan, we documented `r one_tb("Caloocan", "unidentified", "recs")` and estimated `r one_tb("Caloocan", "unidentified", "med")` killings, yet police reported only `r one_tb("Caloocan", "unidentified", "polrep")` --- an implausibly low claim.
+
+# Discussion and Conclusion {-}
+
+```{r conclusion, echo=FALSE, warning=FALSE, results='asis'}
+
+pol_rep_total <- tb %>% filter(pcat=='police') %>% summarize(x = sum(polrep))
+pol_doc_total <- tb %>% filter(pcat=='police') %>% summarize(x = sum(recs))
+uni_rep_total <- tb %>% filter(pcat=='unidentified') %>% summarize(x = sum(polrep))
+uni_doc_total <- tb %>% filter(pcat=='unidentified') %>% summarize(x = sum(recs))
+```
+
+Police numbers understate the number of drug-related killings and do not give a true picture of the human cost of the antidrug campaign. The official tally of drug-related killings committed between July 2016 and December 2017 in these three cities by the police is `r thou(pol_rep_total)`. However, this report documented `r thou(pol_doc_total)` killings by police, based on both police and nonpolice sources. Furthermore, we estimate that by taking into consideration the dark figure of undocumented killings, the true number is approximately `r thou(yamldata$total_pol_ci_med)`.[^pol_ci]
+
+[^pol_ci]: The two-tailed 95\% equal probability credible interval for this estimate is [`r thou(yamldata$total_pol_ci_lo)`, `r thou(yamldata$total_pol_ci_hi)`].
+
+The underreporting is even more extreme for drug-related killings by unidentified assailants. The police reported `r thou(uni_rep_total)` drug-related killings, but the sources used in this report documented many more: `r thou(uni_doc_total)`. The true number is likely much greater: we estimate that after including the dark figure, unidentified assailants killed a total of `r thou(yamldata$total_uni_ci_med)` victims.[^uni_ci]
+
+[^uni_ci]: The two-tailed 95\% equal probability credible interval for this estimate is [`r thou(yamldata$total_uni_ci_lo)`, `r thou(yamldata$total_uni_ci_hi)`].
+
+The findings of this report are limited to only three cities for the first 18 months of the antidrug campaign, but they raise questions about the accuracy and completeness of the police data on drug-linked killings.
+
+
+# Technical Appendix: Data {-}
+
+The data used in this report were collected by the Stabile Center for Investigative Journalism at the Columbia University Journalism School from more than 20 different sources in the Philippines. The Center focused on the three cities in Metro Manila, the Philippine capital, that had the most number of casualties: Manila, Quezon City, and Caloocan. These data covered `r thou(yamldata$total_recs)` drug-related killings for the period July 2016, the start of the Duterte presidency, to December 2017. Those first 18 months, according to aggregate numbers provided by the police, were the bloodiest phase of the antidrug campaign. The data are described below.
+
+
+### Police reports {-}
+
+The police have publicly released only summary figures of drug casualties. Traditionally, police blotters and folders containing spot reports – written accounts of individual crimes that are filed in police stations and submitted to police headquarters – have been open to the public. Reporters were allowed to make copies or take digital images of these records when they visited police stations. The police stopped providing such access sometime in 2017 as the antidrug campaign came under increasing scrutiny, so the police data in this report do not cover the whole of 2017. After repeated requests, however, the National Capital Region Police Office of the Philippine National Police released in June 2019 a list of over 1,000 individuals killed in drug-related killings in Metro Manila between July 2016 and March 2018.
+
+In addition, the Stabile Center obtained from several journalists copies of the digital images of spot reports they got from police stations in Manila, Quezon City, and Caloocan City. They also obtained the complete e-blotter for the whole of Quezon City for the first 18 months of the antidrug campaign. Both the spot and e-blotter reports provided detailed information, including narratives, of drug-related killings. A digital file containing names and narratives of casualties and arrests from antidrug operations conducted by the Manila Police District was also provided to journalists. In addition, the Stabile Center obtained copies of spot reports submitted to the committee on public order and illegal drugs of the Philippine House of Representatives.
+
+Some of the data also came from handwritten police blotters, photographed in two police stations in Manila and the main police station in Caloocan. Another source were the reports compiled by the Internal Affairs Service of the Philippine National Police, whose [mandate](https://www.ias.org.ph/index.php/about-us/powers-and-function) is to conduct “motu propio” investigations each time a policeman discharges a firearm or where there is “death, serious physical injury or any violation of human rights occurred in the conduct of a police operation.”
+
+### News reports {-}
+
+A research consortium of Philippine universities led by the Ateneo de Manila School of Government built a database of drug-related killings based on news reports from Philippine media. They collected information on over 7,000 deaths throughout the country but this report used only the information on drug-related casualties in the three cities for the period that are the focus of this report.
+
+In addition, this report used information from a “Kill List” of drug-related casualties compiled by the _Philippine Daily Inquirer_, a leading newspaper in Manila.
+
+
+### Reports from churches and parishes {-}
+
+Parishes and other Catholic Church-linked groups in Metro Manila collected information on drug war casualties as part of an effort to provide spiritual and material support to their families. The parishes of the Holy Trinity in Balic-Balic, Manila and San Isidro Labrador in Bagong Silangan, Quezon City provided casualty lists. The Franciscan Solidarity Mission for Justice, Peace, and the Integrity of Creation and the parish of the Ina ng Lupang Pangako in Payatas, Quezon City, provided information sheets that had incident narratives.
+
+The Redemptorist Social Mission in Pasay City, Metro Manila gives burial assistance to poor families as part of its charitable work. For this report, the mission provided a list of casualties of drug-related killings whose families were given burial assistance.
+
+Juanita Daño, a nun who lives among the poor in San Andres, Manila, collected information on drug-related killings in her community. She provided names and other details of casualties in a letter she sent to Catholic clergy and in a case she filed in the Supreme Court, along with several others.
+
+Staff at the Catholic Diocese of Caloocan City, documented testimonies of victims of drug-related killings in the city.
+
+### Reports from Non-governmental organizations and human rights groups {-}
+
+Several human rights groups provided information on drug-related killings based on testimonies of victims’ families. These include the Balay Rehabilitation Center, the Philippine Human Rights and Information Center, Rise Up for Life and Rights, and the Task Force Detainees of the Philippines.
+
+
+### Report from the Commission on Human Rights {-}
+
+The Commission is an independent government body tasked with investigating human rights violations against marginalized and vulnerable sectors. The commission provided a list of drug-related killings that took place throughout the country between May 2016 to November 2017. These killings were reported by its field investigators.
+
+
+### Other sources {-}
+
+Journalists covering drug-related killings in four Metro Manila municipalities that fall under the jurisdiction of the Northern Police District provided their notes on victims of drug-related killings that they reported on. They were present at either the crime scene or in morgues. They also obtained copies of paper documents containing burial information of victims of drug-related killings from a funeral parlor in Caloocan City accredited by the police to receive and do autopsies of the bodies of victims of violent crimes. The documents include names, dates and locations of death, and other circumstances of victims of drug war violence; victims of ordinary homicides were excluded from these documents.
+
+In addition, independent researchers shared lists of drug-related killings in Manila, Quezon City and Caloocan that took place between July 2016 and December 2017. They compiled the list from news reports and from  their sources in local community groups. Their report, "Quantifying the Effects of Drug-Related Killings on Philippine Conditional Cash Transfer Beneficiaries in Metro Manila,” was published in 2019.
+
+
+
+# Technical Appendix: Results {-}
+
+This section includes the results for each of the six strata. There are three results for each stratum:
+
+* in the top position is an UpSetR[^upsetr] graph which shows how many records were contributed from each dataset.
+* in the bottom left position we show the distribution from the posterior probability of the estimated total number of drug-related killings ($\hat{N}$) which shows how much uncertainty there is, and how the uncertainty is distributed;
+* and in the bottom right position we show the distributions from alternative estimates of $\hat{N}$ for which each of the datasets has been omitted. This is useful to assess whether any of the datasets has extreme influence over the estimate.
+
+[^upsetr]: The graph is from the [UpSetR](https://cran.r-project.org/package=UpSetR) package, see @upsetr2014.
+
+## Manila--police {-}
+
+```{r man-pol, echo=FALSE, out.width=c('4.5in'), fig.align="center", fig.show='hold'}
+knitr::include_graphics(c(files$man_pol_upsetr))
+```
+
+```{r, echo=FALSE, out.width=c('3in', '3in'), fig.align="center", fig.show="hold"}
+knitr::include_graphics(c(files$man_pol_density, files$man_pol_omitted))
+dat <- tb %>% filter(region=='Manila' & pcat=='police')
+```
+
+These figures explore the data and estimates for drug-related killings committed in Manila by the police. At the top in the N position, the first graph shows the intersections of reports by various datasets. As is true for most of the strata, the police and the news contribute most of the records. This can be seen in the bars on the left of the graph: the first two bars count the victims _only_ documented by the police or news but not by other sources. This is indicated by the single dot underneath each bar. Bars under which there are two dots joined by a line count victims documented by two sources but not the others; lines joining three or more dots indicate which sources count in each bar. Notably all the substantial bars include the news, police, or both sources, showing how important those two sources are to understanding drug-related killings by police in Manila. Indeed, the parish source is a subset of the combined news and police, and the academics include only a few records not found in the others. But neither the news nor the police tell the story on their own. Both sources include substantial numbers of records not found in the other. This becomes important in the next graphs. There were `r dat$recs` total victims observed in one or more of the sources (this is shown in the red line in the lower left graph).[^man_omit_src]
+
+[^man_omit_src]: The data from the spot reports submitted to the Committee on Public Order and Illegal Drugs of the Philippine House of Representatives were compiled from the police reports, so they are not an independent source. They were not used in the estimations.
+
+In the lower left position the estimate itself is shown. As mentioned above, the red line shows the `r dat$recs` victims observed by one or more sources, and the black line shows the distribution of probability of the estimate. The estimate can be understood in the following way: given these data and if the model proposed by LCMCR is correct, there is a 95\% probability that the true number of drug-related killings by police in Manila is between `r dat$lo` and `r dat$hi`.
+
+The graph in the lower right position shows the "what-if" situation that would result if one of the datasets were not available. The mean of our main estimate is shown by the blue vertical line (which equals `r dat$med`); it is shown to explain how each of the "what-if" graphs relates to the final estimate. The estimate is only slightly greater (`r dat$undocpct`) than the number of observed records, suggesting that nearly all police killings in Manila are recorded by one or more of the sources used here. Note that the green and purple lines are quite different from the others, and unsurprisingly, they represent the news and police sources, the two largest sources. If either of these sources were missing, the estimate would be different.
+
+
+## Manila--unidentified perpetrators {-}
+
+```{r, echo=FALSE, out.width=c('4in'), fig.align="center", fig.show='hold'}
+knitr::include_graphics(c(files$man_uni_upsetr))
+```
+
+```{r, echo=FALSE, out.width=c('3in', '3in'), fig.align="center", fig.show="hold"}
+knitr::include_graphics(c(files$man_uni_density, files$man_uni_omitted))
+dat <- tb %>% filter(region=='Manila' & pcat=="unidentified")
+```
+
+These figures explore the data and estimates for drug-related killings committed in Manila by the unidentified perpetrators. As in the Manila-police stratum, the news and police sources account for most of the reports. However, a key difference from the Manila-police data is that there are substantial numbers of victims found by sources other than the news and police, in particular, by the parish and philr sources. Conceptually there are two implications: first, if we obtained additional independent sources, we would expect that they would find additional victims undocumented by the sources shown here precisely because when we added each of these sources, we found additional victims not previously documented. Second, it may be that each of these sources has a slightly different set of people who trust them, and so each source is covering a slightly different subset of the population of killings (in the statistical description of this problem, this variable coverage is called "capture heterogeneity"). This has several consequences.
+
+One consequence follows from the first implication: with `r dat$recs` observed victims, we estimate `r dat$med` in a two-tailed equal probability 95\% credible interval `r paste0(dat$lo, '--', dat$hi)`. The estimate is a `r dat$undocpct` increase relative to the observed victims. Note that the increase of the estimate relative to what is observed is larger than the corresponding increase for Manila-police. That is, we think that in Manila, there are more hidden victims of unidentified perpetrators than there are hidden victims of the police.
+
+The second consequence can be seen in the lower right graph. The blue vertical line shows the estimate at `r dat$med`. Note that most of the curves are slightly to the left of the blue line. This means that with each additional source, the estimate tends to increase a little bit. This finding would be the result if the sources are each uncovering a kind of killing (or social category of victim) which is relatively poorly covered by the other sources. There is insufficient information to confirm this speculation, though it is consistent with observation in this graph.
+
+## Quezon City--police {-}
+
+```{r, echo=FALSE, out.width=c('4.5in'), fig.align="center", fig.show='hold'}
+knitr::include_graphics(c(files$que_pol_upsetr))
+```
+
+```{r, echo=FALSE, out.width=c('3in', '3in'), fig.align="center", fig.show="hold"}
+knitr::include_graphics(c(files$que_pol_density, files$que_pol_omitted))
+dat <- tb %>% filter(region=="Quezon City" & pcat=="police")
+```
+
+These figures explore the data and estimates for killings committed in Quezon City by the police. As with the Manila-police stratum, most of the reports come from the police and news sources, so those sources tend to determine the result. The estimate (`r dat$med`) is near to the documented total (`r dat$recs`), representing a modest `r dat$undocpct` increase in the estimation. The estimate would be quite different if either the news or police source were omitted.
+
+## Quezon City--unidentified perpetrators {-}
+
+
+```{r, echo=FALSE, out.width=c('4.5in'), fig.align="center", fig.show='hold'}
+knitr::include_graphics(c(files$que_uni_upsetr))
+```
+
+```{r, echo=FALSE, out.width=c('3in', '3in'), fig.align="center", fig.show="hold"}
+knitr::include_graphics(c(files$que_uni_density, files$que_uni_omitted))
+dat <- tb %>% filter(region=="Quezon City" & pcat=="unidentified")
+```
+These figures explore the data and estimates for killings committed in Quezon City by the unidentified perpetrators. The pattern here is similar to the pattern for Manila--unidentified perpetrators: there are multiple datasets, more than only the news and police sources, which contribute substantial numbers of records, the estimate (`r dat$med`) is considerably greater than the number of observed victims (`r dat$recs`). We estimate that `r dat$undocpct` of the victims of unidentified perpetrators in Quezon City are undocumented. As in Manila, the proportion of victims who are not documented is greater for the unidentified perpetrators than for the police. The overall estimate is greater than or approximately equal do the estimates for which one source has been omitted.
+
+
+## Caloocan--police {-}
+
+```{r, echo=FALSE, out.width=c('4.5in'), fig.align="center", fig.show='hold'}
+knitr::include_graphics(c(files$cal_pol_upsetr))
+```
+
+```{r, echo=FALSE, out.width=c('3in', '3in'), fig.align="center", fig.show="hold"}
+knitr::include_graphics(c(files$cal_pol_density, files$cal_pol_omitted))
+dat <- tb %>% filter(region=="Caloocan" & pcat=="police")
+```
+These figures explore the data and estimates for drug-related killings committed in Caloocan by the police.[^cal_pol_omit] This is similar to but not identical to the results seen for the estimates of killings by police in Manila and Quezon City. As in the other two police strata, the news and police sources include the other sources. However, there are relatively more records documented only by the news and police (but not each other nor the other sources), and the intersections among the sources are complex and dense. The estimate (`r dat$med`) implies that `r dat$undocpct` of the victims are unobserved, which is in between the increases for the estimates of Manila and Quezon City drug-related killings by police.
+
+[^cal_pol_omit]: The Balay Rehabilitation Center provided information about killings in Caloocan by the police and by unidentified perpetrators. However, the information from the Center was specific to a small part of Caloocan; they did not cover other areas. Because of this limitation, we did not use the Center's data in our estimates, which means we count eight fewer records than our other reports.
+
+## Caloocan--unidentified perpetrators {-}
+
+```{r, echo=FALSE, out.width=c('4.5in'), fig.align="center", fig.show='hold'}
+knitr::include_graphics(c(files$cal_uni_upsetr))
+```
+
+```{r, echo=FALSE, out.width=c('3in', '3in'), fig.align="center", fig.show="hold"}
+knitr::include_graphics(c(files$cal_uni_density, files$cal_uni_omitted))
+dat <- tb %>% filter(region=="Caloocan" & pcat=="unidentified")
+```
+These figures explore the data and estimates for killings committed in Caloocan by the unidentified perpetrators. Like the estimates for unidentified perpetrators in Manila and Quezon City, the the estimate (`r dat$med`) is greater than the number of observed victims (`r dat$recs`), suggesting that `r dat$undocpct` of victims are unobserved. This is slightly lower than the increase for unidentified perpetrators in Manila and Quezon City. Most of the killings in this stratum are reported only by the police, not by the other sources, and there are relatively few killings reported by multiple sources. Consequently, the police dataset is essential for the estimate of drug-related killings by unidentified perpetrators in Caloocan, while other datasets add relatively less to the estimate.
+
+
+
+# References {-}
+<!-- done. -->
