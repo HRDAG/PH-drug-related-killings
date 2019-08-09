@@ -1,4 +1,4 @@
-# PH
+# PH-drug-related-killings
 
 Code and data to analyze drug-related killings in the Philippines
 
